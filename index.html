@@ -1,0 +1,351 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运抽奖转盘</title>
+    <style>
+    
+body {
+    background: linear-gradient(135deg, #0B1220, #1B2B4B, #101827);
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h1 {
+    color: #FFD700;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+letter-spacing: 2px;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.35), 0 0 50px rgba(255, 215, 0, 0.12);
+    font-size: 36px;
+    margin-top: 40px;
+}
+
+#wheel {
+    width: 300px;
+    height: 300px;
+    background-color: #24334A;
+    border: 8px solid #FFD700;
+    border-radius: 50%;
+    margin: 36px auto;
+}
+
+
+#pointer {
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 30px solid #FFD700;
+    margin: 0 auto;
+}
+
+
+#wheel-center {
+    width: 70px;
+    height: 70px;
+    background-color: #FFD700;
+    color: #101827;
+    border-radius: 50%;
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 115px auto;
+}
+
+button {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #101827;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    margin: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(255, 215, 0, 0.4);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#prize-list {
+    color: #DCE6F5;
+    font-size: 16px;
+    line-height: 1.8;
+    margin: 24px auto;
+    max-width: 600px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 215, 0, 0.18);
+    border-radius: 12px;
+}
+
+.subtitle {
+    color: #B8C7E0;
+    font-size: 17px;
+    line-height: 1.8;
+    margin: 12px auto 24px;
+    letter-spacing: 0.5px;
+}
+
+</style>
+</head>
+<body>
+<h1>幸运抽奖转盘</h1>
+<p class="subtitle">转动转盘，看看今天的幸运奖品是什么！</p>
+<div id="pointer"></div>
+<div id="wheel">
+     <canvas id="wheel-canvas" width="300" height="300"></canvas>
+    <div id="wheel-center">幸运</div>
+
+</div>
+<button id="spin-button">开始抽奖</button>
+
+<p id="result">等待抽奖结果...</p>
+<p id="count">已抽奖 0 次</p>
+<p id="last-prize">上次中奖：暂无记录</p>
+<button id="history-button" onclick="location.href='history-page.html'">查看抽奖历史</button><div id="history-list" hidden></div>
+<button id="reset-button">清空抽奖记录</button>
+
+<script>
+const prizes = [
+    { name: "一等奖", probability: 1 },
+    { name: "二等奖", probability: 4 },
+    { name: "三等奖", probability: 15 },
+    { name: "积分奖励", probability: 30 },
+    { name: "谢谢惠顾", probability: 50 }
+];
+
+const firstPrizeImage = new Image();
+firstPrizeImage.src = "first-prize.png";
+
+const secondPrizeImage = new Image();
+secondPrizeImage.src = "second-prize.png";
+
+const thirdPrizeImage = new Image();
+thirdPrizeImage.src = "third-prize.png";
+
+const pointsPrizeImage = new Image();
+pointsPrizeImage.src = "points-prize.png";
+
+const thanksPrizeImage = new Image();
+thanksPrizeImage.src = "thanks-prize.png";
+
+const canvas = document.getElementById("wheel-canvas");
+const ctx = canvas.getContext("2d");
+
+const result = document.getElementById("result");
+const lastPrize = localStorage.getItem("lastPrize") || "";
+if (lastPrize) {
+    document.getElementById("last-prize").textContent = "上次中奖：" + lastPrize;
+}
+
+const colors = ["#FFD700", "#FF7043", "#42A5F5", "#66BB6A", "#AB47BC"];
+
+const anglePerPrize = (Math.PI * 2) / prizes.length;
+
+prizes.forEach((prize, index) => {
+    const startAngle = index * anglePerPrize;
+    const endAngle = startAngle + anglePerPrize;
+
+    ctx.beginPath();
+    ctx.moveTo(150, 150);
+    ctx.arc(150, 150, 140, startAngle, endAngle);
+    ctx.closePath();
+
+    ctx.fillStyle = colors[index];
+    ctx.fill();
+});
+prizes.forEach((prize, index) => {
+    const angle = index * anglePerPrize + anglePerPrize / 2;
+    const x = 150 + Math.cos(angle) * 90;
+    const y = 150 + Math.sin(angle) * 90;
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "14px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+let prizeImage = null;
+
+if (prize.name === "一等奖") {
+    prizeImage = firstPrizeImage;
+} else if (prize.name === "二等奖") {
+    prizeImage = secondPrizeImage;
+} else if (prize.name === "三等奖") {
+    prizeImage = thirdPrizeImage;
+} else if (prize.name === "积分奖励") {
+    prizeImage = pointsPrizeImage;
+} else if (prize.name === "谢谢惠顾") {
+    prizeImage = thanksPrizeImage;
+}
+
+if (prizeImage && prizeImage.complete && prizeImage.naturalWidth > 0) {
+    ctx.drawImage(prizeImage, x - 39.5, y - 39.5, 79, 79);
+} else {
+    ctx.fillText(prize.name, x, y);
+}
+}
+);
+
+const prizeImages = [
+    firstPrizeImage,
+    secondPrizeImage,
+    thirdPrizeImage,
+    pointsPrizeImage,
+    thanksPrizeImage
+];
+
+function drawPrizeImages() {
+    prizes.forEach((prize, index) => {
+        const img = prizeImages[index];
+
+        if (img && img.complete && img.naturalWidth > 0) {
+            const angle = index * anglePerPrize + anglePerPrize / 2;
+            const x = 150 + Math.cos(angle) * 90;
+            const y = 150 + Math.sin(angle) * 90;
+
+            ctx.drawImage(img, x - 39.5, y - 39.5, 79, 79);
+        }
+    });
+}
+
+prizeImages.forEach(img => {
+    if (img.complete && img.naturalWidth > 0) {
+        drawPrizeImages();
+    } else {
+        img.addEventListener("load", drawPrizeImages, { once: true });
+    }
+});
+
+const totalProbability = prizes.reduce(
+    (total, prize) => total + prize.probability,
+    0
+);
+
+console.log("概率总和：", totalProbability + "%");
+
+
+const prizeList = document.createElement("p");
+prizeList.id = "prize-list";
+
+prizeList.textContent = "奖品：" + prizes.map(
+    prize => prize.name
+).join("、");
+
+document.getElementById("wheel").after(prizeList);
+
+let currentRotation = 0;
+
+let drawCount = Number(localStorage.getItem("drawCount")) || 0;
+
+document.getElementById("spin-button").addEventListener("click", function () {
+        this.disabled = true;
+        this.textContent = "抽奖中...";
+
+    setTimeout(() => {
+        this.disabled = false;
+        this.textContent = "开始抽奖";
+    }, 3000);
+    const total = prizes.reduce(
+        (sum, prize) => sum + prize.probability,
+        0
+    );
+
+    let randomNumber = Math.random() * total;
+    let selectedIndex = prizes.length - 1;
+
+    for (let i = 0; i < prizes.length; i++) {
+        randomNumber -= prizes[i].probability;
+
+        if (randomNumber < 0) {
+            selectedIndex = i;
+            break;
+        }
+    }
+
+    const anglePerPrize = 360 / prizes.length;
+    const prizeCenterAngle =
+        (selectedIndex + 0.5) * anglePerPrize;
+
+    const targetAngle = 270 - prizeCenterAngle;
+
+    currentRotation +=
+        1440 +
+        ((targetAngle - currentRotation % 360 + 360) % 360);
+
+    canvas.style.transition = "transform 3s ease-out";
+    canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+    result.textContent = "正在抽奖，请稍等...";
+
+    setTimeout(function () {
+        result.textContent ="恭喜你，抽中了：" + prizes[selectedIndex].name;
+        localStorage.setItem("lastPrize", prizes[selectedIndex].name);
+        let history = JSON.parse(localStorage.getItem("prizeHistory") || "[]");
+
+history.push({
+    prize: prizes[selectedIndex].name,
+    time: new Date().toLocaleString()
+});
+
+localStorage.setItem("prizeHistory", JSON.stringify(history));
+        document.getElementById("last-prize").textContent = "上次中奖：" + prizes[selectedIndex].name;
+        drawCount++;
+        localStorage.setItem("drawCount", drawCount);
+
+document.getElementById("count").textContent = "已抽奖 " + drawCount + " 次";
+    }, 3000);
+
+});
+document.getElementById("reset-button").addEventListener("click", function () {
+    drawCount = 0;
+    localStorage.removeItem("drawCount");
+    localStorage.removeItem("lastPrize");
+
+    document.getElementById("count").textContent = "已抽奖 0 次";
+    document.getElementById("last-prize").textContent = "上次中奖：暂无记录";
+    result.textContent = "抽奖记录已清空";
+});
+
+document.getElementById("history-button").addEventListener("click", function () {
+    const history = JSON.parse(
+        localStorage.getItem("prizeHistory") || "[]"
+    );
+
+    const historyList = document.getElementById("history-list");
+    historyList.hidden = false;
+
+    if (history.length === 0) {
+        historyList.textContent = "暂无历史记录，请先进行一次抽奖。";
+        return;
+    }
+
+    historyList.innerHTML = "<h3>抽奖历史</h3>" +
+        history.slice().reverse().map((item, index) =>
+            "<p>" + (index + 1) + ". " +
+            item.time + " — " + item.prize + "</p>"
+        ).join("");
+});
+
+</script>
+
+</body>
+</html>

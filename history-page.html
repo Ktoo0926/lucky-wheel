@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽奖历史记录</title>
+    <style>
+        body {
+            background: #101827;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #FFD700;
+        }
+
+        .record {
+            background: #24334A;
+            padding: 15px;
+            margin: 12px auto;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>抽奖历史记录</h1>
+    <p id="total-count">正在读取记录...</p>
+    <input id="search-input" type="text" placeholder="输入奖品名称搜索">
+    <select id="prize-filter">
+    <option value="">全部奖品</option>
+    <option value="一等奖">一等奖</option>
+    <option value="二等奖">二等奖</option>
+    <option value="三等奖">三等奖</option>
+    <option value="积分奖励">积分奖励</option>
+    <option value="谢谢参与">谢谢参与</option>
+</select>
+    <div id="history-list"></div>
+<button id="export-button">导出历史记录</button>
+    <button onclick="location.href='index.html'">返回抽奖页面</button>
+
+    <script>
+        const history = JSON.parse(
+            localStorage.getItem("prizeHistory") || "[]"
+        );
+
+        document.getElementById("total-count").textContent =
+            "累计抽奖：" + history.length + " 次";
+
+        const list = document.getElementById("history-list");
+        document.getElementById("export-button").addEventListener("click", function () {
+    const history = JSON.parse(
+        localStorage.getItem("prizeHistory") || "[]"
+    );
+
+    if (history.length === 0) {
+        alert("暂无历史记录可以导出！");
+        return;
+    }
+
+    const rows = [
+        ["抽奖次数", "抽奖时间", "中奖奖品"],
+        ...history.map((item, index) => [
+            index + 1,
+            item.time,
+            item.prize
+        ])
+    ];
+
+    const csv = "\uFEFF" + rows.map(row =>
+        row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(",")
+    ).join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "抽奖历史记录.csv";
+    link.click();
+
+    URL.revokeObjectURL(url);
+});
+        function filterRecords() {
+    const keyword = document.getElementById("search-input").value.trim().toLowerCase();
+    const selectedPrize = document.getElementById("prize-filter").value;
+    const records = document.querySelectorAll(".record");
+
+    records.forEach(function (record) {
+        const matchesKeyword = record.textContent.toLowerCase().includes(keyword);
+        const matchesPrize = !selectedPrize || record.textContent.includes(selectedPrize);
+
+        record.hidden = !(matchesKeyword && matchesPrize);
+    });
+}
+
+document.getElementById("search-input").addEventListener("input", filterRecords);
+document.getElementById("prize-filter").addEventListener("change", filterRecords);
+        if (history.length === 0) {
+            list.textContent = "暂无历史记录，请先进行新的抽奖。";
+        } else {
+            history.slice().reverse().forEach((item, index) => {
+                const record = document.createElement("div");
+                record.className = "record";
+                record.textContent =
+                    "第 " + (history.length - index) + " 次｜" +
+                    item.time + "｜中奖奖品：" + item.prize;
+
+                list.appendChild(record);
+            });
+        }
+    </script>
+</body>
+</html>
